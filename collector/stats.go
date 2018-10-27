@@ -85,7 +85,7 @@ func NewStatsCollector(endpoint string, timeout time.Duration) StatsCollector {
 	}
 }
 
-func (s StatsCollector) SetBulkioStats(ch chan<- prometheus.Metric, dockerID string, c v2.ContainerStats) {
+func (s StatsCollector) SetBulkioStats(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
 	for key, arr := range c.BlkioStats {
 		for _, value := range arr {
 			s.blkioStats.WithLabelValues(dockerID, key+"/"+value.Op).Set(value.Value)
@@ -93,7 +93,7 @@ func (s StatsCollector) SetBulkioStats(ch chan<- prometheus.Metric, dockerID str
 	}
 }
 
-func (s StatsCollector) SetCPUStats(ch chan<- prometheus.Metric, dockerID string, c v2.ContainerStats) {
+func (s StatsCollector) SetCPUStats(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
 	metrics := map[string]float64{
 		"online_cpus":                   c.CPUStats.OnLineCPUs,
 		"system_cpu_usage":              c.CPUStats.SystemCPUUsage,
@@ -111,7 +111,7 @@ func (s StatsCollector) SetCPUStats(ch chan<- prometheus.Metric, dockerID string
 	}
 }
 
-func (s StatsCollector) SetMemoryStats(ch chan<- prometheus.Metric, dockerID string, c v2.ContainerStats) {
+func (s StatsCollector) SetMemoryStats(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
 	metrics := map[string]float64{
 		"limit":     c.MemoryStats.Limit,
 		"max_usage": c.MemoryStats.MaxUsage,
@@ -127,19 +127,19 @@ func (s StatsCollector) SetMemoryStats(ch chan<- prometheus.Metric, dockerID str
 	}
 }
 
-func (s StatsCollector) SetStorageStats(ch chan<- prometheus.Metric, dockerID string, c v2.ContainerStats) {
+func (s StatsCollector) SetStorageStats(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
 	for key, value := range c.PidsStats {
 		s.storageStats.WithLabelValues(dockerID, key).Set(value)
 	}
 }
 
-func (s StatsCollector) SetPidsStats(ch chan<- prometheus.Metric, dockerID string, c v2.ContainerStats) {
+func (s StatsCollector) SetPidsStats(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
 	for key, value := range c.PidsStats {
 		s.pidsStats.WithLabelValues(dockerID, key).Set(value)
 	}
 }
 
-func (s StatsCollector) SetNetwork(ch chan<- prometheus.Metric, dockerID string, c v2.ContainerStats) {
+func (s StatsCollector) SetNetwork(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
 	for interfaceName, metrics := range c.Network {
 		for key, value := range metrics {
 			s.network.WithLabelValues(dockerID, interfaceName+"/"+key).Set(value)
@@ -170,12 +170,12 @@ func (s StatsCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	for dockerID, containerStats := range taskStats {
-		s.SetBulkioStats(ch, dockerID, containerStats)
-		s.SetCPUStats(ch, dockerID, containerStats)
-		s.SetMemoryStats(ch, dockerID, containerStats)
-		s.SetStorageStats(ch, dockerID, containerStats)
-		s.SetPidsStats(ch, dockerID, containerStats)
-		s.SetNetwork(ch, dockerID, containerStats)
+		s.SetBulkioStats(ch, dockerID, &containerStats)
+		s.SetCPUStats(ch, dockerID, &containerStats)
+		s.SetMemoryStats(ch, dockerID, &containerStats)
+		s.SetStorageStats(ch, dockerID, &containerStats)
+		s.SetPidsStats(ch, dockerID, &containerStats)
+		s.SetNetwork(ch, dockerID, &containerStats)
 	}
 
 	s.blkioStats.Collect(ch)

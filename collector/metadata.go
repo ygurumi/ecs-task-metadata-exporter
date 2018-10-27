@@ -55,7 +55,7 @@ func NewMetadataCollector(endpoint string, timeout time.Duration) MetadataCollec
 	}
 }
 
-func (m MetadataCollector) PutTaskMetadata(ch chan<- prometheus.Metric, t v2.TaskMetadata) error {
+func (m MetadataCollector) PutTaskMetadata(ch chan<- prometheus.Metric, t *v2.TaskMetadata) error {
 	metric, err := prometheus.NewConstMetric(taskMetadataDesc, prometheus.GaugeValue, 0, t.Cluster, t.Family, t.TaskARN, t.Revision, t.DesiredStatus, t.KnownStatus)
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (m MetadataCollector) PutTaskMetadata(ch chan<- prometheus.Metric, t v2.Tas
 	return nil
 }
 
-func (m MetadataCollector) PutContainerMetadata(ch chan<- prometheus.Metric, c v2.ContainerMetadata) error {
+func (m MetadataCollector) PutContainerMetadata(ch chan<- prometheus.Metric, c *v2.ContainerMetadata) error {
 	metric, err := prometheus.NewConstMetric(containerMetadataDesc, prometheus.GaugeValue, 0, c.DockerID, c.DockerName, c.Image, c.ImageID, c.Name, c.DesiredStatus, c.KnownStatus, c.Type)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (m MetadataCollector) PutContainerMetadata(ch chan<- prometheus.Metric, c v
 	return nil
 }
 
-func (m MetadataCollector) PutContainerLabels(ch chan<- prometheus.Metric, c v2.ContainerMetadata) error {
+func (m MetadataCollector) PutContainerLabels(ch chan<- prometheus.Metric, c *v2.ContainerMetadata) error {
 	for key, value := range c.Labels {
 		m, err := prometheus.NewConstMetric(containerLabelsDesc, prometheus.GaugeValue, 0, c.DockerID, key, value)
 		if err != nil {
@@ -87,7 +87,7 @@ func (m MetadataCollector) PutContainerLabels(ch chan<- prometheus.Metric, c v2.
 	return nil
 }
 
-func (m MetadataCollector) PutContainerLimits(ch chan<- prometheus.Metric, c v2.ContainerMetadata) error {
+func (m MetadataCollector) PutContainerLimits(ch chan<- prometheus.Metric, c *v2.ContainerMetadata) error {
 	for key, value := range c.Limits {
 		m, err := prometheus.NewConstMetric(containerLimitsDesc, prometheus.GaugeValue, value, c.DockerID, key)
 		if err != nil {
@@ -119,21 +119,21 @@ func (m MetadataCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	if err := m.PutTaskMetadata(ch, taskMetadata); err != nil {
+	if err := m.PutTaskMetadata(ch, &taskMetadata); err != nil {
 		log.Println(err)
 		return
 	}
 
 	for _, containerMetadata := range taskMetadata.Containers {
-		if err := m.PutContainerMetadata(ch, containerMetadata); err != nil {
+		if err := m.PutContainerMetadata(ch, &containerMetadata); err != nil {
 			log.Println(err)
 			return
 		}
-		if err := m.PutContainerLabels(ch, containerMetadata); err != nil {
+		if err := m.PutContainerLabels(ch, &containerMetadata); err != nil {
 			log.Println(err)
 			return
 		}
-		if err := m.PutContainerLimits(ch, containerMetadata); err != nil {
+		if err := m.PutContainerLimits(ch, &containerMetadata); err != nil {
 			log.Println(err)
 			return
 		}
