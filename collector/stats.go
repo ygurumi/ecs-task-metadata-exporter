@@ -16,6 +16,7 @@ type StatsCollector struct {
 	endpoint     string
 	blkioStats   *prometheus.GaugeVec
 	cpuStats     *prometheus.GaugeVec
+	preCPUStats  *prometheus.GaugeVec
 	memoryStats  *prometheus.GaugeVec
 	storageStats *prometheus.GaugeVec
 	pidsStats    *prometheus.GaugeVec
@@ -43,6 +44,15 @@ func NewStatsCollector(endpoint string, timeout time.Duration) StatsCollector {
 				Subsystem: ContainerSubsystem,
 				Name:      "cpu_stats",
 				Help:      "cpu_stats",
+			},
+			[]string{"docker_id", "path"},
+		),
+		preCPUStats: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: Namespace,
+				Subsystem: ContainerSubsystem,
+				Name:      "precpu_stats",
+				Help:      "precpu_stats",
 			},
 			[]string{"docker_id", "path"},
 		),
@@ -111,6 +121,24 @@ func (s StatsCollector) SetCPUStats(ch chan<- prometheus.Metric, dockerID string
 	}
 }
 
+func (s StatsCollector) SetPreCPUStats(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
+	metrics := map[string]float64{
+		"online_cpus":                   c.PreCPUStats.OnLineCPUs,
+		"system_cpu_usage":              c.PreCPUStats.SystemCPUUsage,
+		"cpu_usage/total_usage":         c.PreCPUStats.CPUUsage.TotalUsage,
+		"cpu_usage/usage_in_kernelmode": c.PreCPUStats.CPUUsage.UsageInKernelmode,
+		"cpu_usage/usage_in_usermode":   c.PreCPUStats.CPUUsage.UsageInUsermode,
+	}
+
+	for key, value := range metrics {
+		s.preCPUStats.WithLabelValues(dockerID, key).Set(value)
+	}
+
+	for i, value := range c.PreCPUStats.CPUUsage.PerCPUUsage {
+		s.preCPUStats.WithLabelValues(dockerID, fmt.Sprintf("cpu_usage/percpu_usage/%v", i)).Set(value)
+	}
+}
+
 func (s StatsCollector) SetMemoryStats(ch chan<- prometheus.Metric, dockerID string, c *v2.ContainerStats) {
 	metrics := map[string]float64{
 		"limit":     c.MemoryStats.Limit,
@@ -150,6 +178,7 @@ func (s StatsCollector) SetNetwork(ch chan<- prometheus.Metric, dockerID string,
 func (s StatsCollector) Describe(ch chan<- *prometheus.Desc) {
 	s.blkioStats.Describe(ch)
 	s.cpuStats.Describe(ch)
+	s.preCPUStats.Describe(ch)
 	s.memoryStats.Describe(ch)
 	s.storageStats.Describe(ch)
 	s.pidsStats.Describe(ch)
@@ -172,6 +201,7 @@ func (s StatsCollector) Collect(ch chan<- prometheus.Metric) {
 	for dockerID, containerStats := range taskStats {
 		s.SetBulkioStats(ch, dockerID, &containerStats)
 		s.SetCPUStats(ch, dockerID, &containerStats)
+		s.SetPreCPUStats(ch, dockerID, &containerStats)
 		s.SetMemoryStats(ch, dockerID, &containerStats)
 		s.SetStorageStats(ch, dockerID, &containerStats)
 		s.SetPidsStats(ch, dockerID, &containerStats)
@@ -180,6 +210,7 @@ func (s StatsCollector) Collect(ch chan<- prometheus.Metric) {
 
 	s.blkioStats.Collect(ch)
 	s.cpuStats.Collect(ch)
+	s.preCPUStats.Collect(ch)
 	s.memoryStats.Collect(ch)
 	s.storageStats.Collect(ch)
 	s.pidsStats.Collect(ch)
