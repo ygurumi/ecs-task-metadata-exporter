@@ -34,7 +34,7 @@ func NewStatsCollector(endpoint string, timeout time.Duration) StatsCollector {
 				Namespace: Namespace,
 				Subsystem: ContainerSubsystem,
 				Name:      "bulkio_stats",
-				Help:      "cpu_stats",
+				Help:      "bulkio_stats",
 			},
 			[]string{"docker_id", "path"},
 		),
