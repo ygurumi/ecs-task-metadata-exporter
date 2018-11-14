@@ -13,11 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type taskMetadataExporter struct {
-	metadataCollector collector.MetadataCollector
-	statsCollector    collector.StatsCollector
-}
-
 const (
 	defaultMetadataEndpoint string = "http://169.254.170.2/v2/metadata"
 	defaultStatsEndpoint    string = "http://169.254.170.2/v2/stats"
@@ -40,8 +35,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	exporter := newTaskMetadataExporter(metadataEndpoint, statsEndpoint, timeout)
-	if err := prometheus.Register(exporter); err != nil {
+	collector := collector.New(metadataEndpoint, statsEndpoint, timeout)
+	if err := prometheus.Register(collector); err != nil {
 		log.Fatal(err)
 	}
 
@@ -54,27 +49,8 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/debug/metadata", exporter.metadataCollector.DebugHandler)
-	http.HandleFunc("/debug/stats", exporter.statsCollector.DebugHandler)
-
+	http.HandleFunc("/debug", collector.DebugHandler)
 	http.Handle(path, promhttp.Handler())
 
 	log.Fatal(http.ListenAndServe(address, nil))
-}
-
-func newTaskMetadataExporter(metadataEndpoint string, statsEndpoint string, timeout time.Duration) taskMetadataExporter {
-	return taskMetadataExporter{
-		metadataCollector: collector.NewMetadataCollector(metadataEndpoint, timeout),
-		statsCollector:    collector.NewStatsCollector(statsEndpoint, timeout),
-	}
-}
-
-func (e taskMetadataExporter) Describe(ch chan<- *prometheus.Desc) {
-	e.metadataCollector.Describe(ch)
-	e.statsCollector.Describe(ch)
-}
-
-func (e taskMetadataExporter) Collect(ch chan<- prometheus.Metric) {
-	e.metadataCollector.Collect(ch)
-	e.statsCollector.Collect(ch)
 }

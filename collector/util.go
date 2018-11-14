@@ -2,18 +2,13 @@ package collector
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 )
 
-const (
-	Namespace          string = "ecs"
-	ContainerSubsystem string = "container"
-	TaskSubsystem      string = "task"
-)
-
-func GetHTTPBytes(client http.Client, url string) ([]byte, error) {
+func getHTTPBytes(client http.Client, url string) ([]byte, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
@@ -31,4 +26,39 @@ func GetHTTPBytes(client http.Client, url string) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func readTaskMetadata(client http.Client, endpoint string, output interface{}) error {
+	bs, err := getHTTPBytes(client, endpoint)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(bs, output); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readTaskStats(client http.Client, endpoint string, output interface{}) error {
+	bs, err := getHTTPBytes(client, endpoint)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(bs, output); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func fPrettyPrint(w io.Writer, obj interface{}) error {
+	bs, err := json.MarshalIndent(obj, "", "    ")
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(bs)
+	return err
 }
