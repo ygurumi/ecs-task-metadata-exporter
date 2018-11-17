@@ -8,6 +8,12 @@ import (
 	"net/http"
 )
 
+const (
+	namespace          string = "ecs"
+	containerSubsystem string = "container"
+	taskSubsystem      string = "task"
+)
+
 func getHTTPBytes(client http.Client, url string) ([]byte, error) {
 	resp, err := client.Get(url)
 	if err != nil {
