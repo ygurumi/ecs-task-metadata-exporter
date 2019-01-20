@@ -2,7 +2,7 @@ package collector
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/ygurumi/ecs-task-metadata-exporter/apis/v2"
+	v2 "github.com/ygurumi/ecs-task-metadata-exporter/apis/v2"
 )
 
 type metadataCollector struct {
